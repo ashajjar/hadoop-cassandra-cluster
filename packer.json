@@ -1,0 +1,48 @@
+{
+    "builders": [
+        {
+            "access_key": "{{user `aws_access_key`}}",
+            "ami_name": "packer-linux-aws-demo-{{timestamp}}",
+            "instance_type": "t2.micro",
+            "region": "{{user `region`}}",
+            "secret_key": "{{user `aws_secret_key`}}",
+            "source_ami_filter": {
+                "filters": {
+                    "name": "ubuntu/images/*ubuntu-xenial-16.04-amd64-server-*",
+                    "root-device-type": "ebs",
+                    "virtualization-type": "hvm"
+                },
+                "most_recent": true,
+                "owners": [
+                    "099720109477"
+                ]
+            },
+            "ssh_username": "ubuntu",
+            "type": "amazon-ebs"
+        }
+    ],
+    "description": "This is a packer recipe to build Hadoop Node",
+    "provisioners": [
+        {
+            "destination": "/home/ubuntu/",
+            "source": "./welcome.txt",
+            "type": "file"
+        },
+        {
+            "inline": [
+                "ls -al /home/ubuntu",
+                "cat /home/ubuntu/welcome.txt"
+            ],
+            "type": "shell"
+        },
+        {
+            "script": "./example.sh",
+            "type": "shell"
+        }
+    ],
+    "variables": {
+        "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+        "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+        "region": "eu-central-1"
+    }
+}
