@@ -1,4 +1,4 @@
-output "master-ip" {
-  value = aws_instance.master-node.public_ip
+output "manager-ip" {
+  value = aws_instance.admin-node.public_ip
 }
 
