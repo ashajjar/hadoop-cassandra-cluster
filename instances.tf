@@ -3,13 +3,18 @@ resource "aws_instance" "admin-node" {
   ami                    = var.source_ami
   instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.default_egress.id, aws_security_group.admin_access_public.id, aws_security_group.admin_access_private.id]
-  subnet_id              = aws_subnet.subnet_a.id
+  subnet_id              = aws_subnet.public_subnet.id
 
   connection {
     type        = "ssh"
     user        = "ubuntu"
     private_key = file("keys/cluster_key")
     host        = self.public_ip
+  }
+
+  provisioner "file" {
+    source      = "keys/cluster_key"
+    destination = "/home/ubuntu/.ssh/id_rsa"
   }
 
   tags = {
@@ -24,7 +29,7 @@ resource "aws_instance" "master-node" {
 
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.default_egress.id, aws_security_group.admin_access_private.id]
-  subnet_id                   = aws_subnet.subnet_a.id
+  subnet_id                   = aws_subnet.private_subnet.id
 
   connection {
     bastion_host = aws_instance.admin-node.public_ip
@@ -34,7 +39,15 @@ resource "aws_instance" "master-node" {
   }
 
   provisioner "remote-exec" {
-    inline = ["echo 'CONNECTED TO MASTER NODE'"]
+    inline = [
+      "echo 'CONNECTED TO MASTER NODE'",
+      "sudo hostnamectl set-hostname master.hadoop.cluster"
+    ]
+  }
+
+  provisioner "file" {
+    source      = "keys/cluster_key"
+    destination = "/home/ubuntu/.ssh/id_rsa"
   }
 
   tags = {
@@ -50,7 +63,7 @@ resource "aws_instance" "slave-nodes" {
 
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.default_egress.id, aws_security_group.admin_access_private.id]
-  subnet_id                   = aws_subnet.subnet_a.id
+  subnet_id                   = aws_subnet.private_subnet.id
 
   connection {
     bastion_host = aws_instance.admin-node.public_ip
@@ -60,7 +73,15 @@ resource "aws_instance" "slave-nodes" {
   }
 
   provisioner "remote-exec" {
-    inline = ["echo 'CONNECTED TO SLAVE NODE ${count.index}'"]
+    inline = [
+      "echo 'CONNECTED TO SLAVE NODE ${count.index}'",
+      "sudo hostnamectl set-hostname slave-${count.index}.hadoop.cluster"
+    ]
+  }
+
+  provisioner "file" {
+    source      = "keys/cluster_key"
+    destination = "/home/ubuntu/.ssh/id_rsa"
   }
 
   tags = {
@@ -76,7 +97,7 @@ resource "aws_instance" "cassandra-nodes" {
 
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.default_egress.id, aws_security_group.admin_access_private.id]
-  subnet_id                   = aws_subnet.subnet_a.id
+  subnet_id                   = aws_subnet.private_subnet.id
 
 
   connection {
@@ -87,7 +108,15 @@ resource "aws_instance" "cassandra-nodes" {
   }
 
   provisioner "remote-exec" {
-    inline = ["echo 'CONNECTED TO CASSANDRA NODE ${count.index}'"]
+    inline = [
+      "echo 'CONNECTED TO CASSANDRA NODE ${count.index}'",
+      "sudo hostnamectl set-hostname node-${count.index}.cassandra.cluster"
+    ]
+  }
+
+  provisioner "file" {
+    source      = "keys/cluster_key"
+    destination = "/home/ubuntu/.ssh/id_rsa"
   }
 
   tags = {
