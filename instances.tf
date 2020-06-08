@@ -35,7 +35,8 @@ resource "aws_instance" "slave-nodes" {
   subnet_id                   = aws_subnet.private_subnet.id
 
   tags = {
-    Name = "Hadoop-Slave-${count.index}"
+    Name       = "Hadoop-Slave-${count.index}"
+    DomainName = "slave-${count.index}.hadoop.cluster"
   }
 }
 
@@ -50,6 +51,7 @@ resource "aws_instance" "cassandra-nodes" {
   subnet_id                   = aws_subnet.private_subnet.id
 
   tags = {
-    Name = "Cassandra-Node-${count.index}"
+    Name       = "Cassandra-Node-${count.index}"
+    DomainName = "node-${count.index}.cassandra.cluster"
   }
 }
