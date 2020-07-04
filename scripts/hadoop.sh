@@ -11,10 +11,13 @@ cd ~ || exit 1
 echo "Host *" > .ssh/config
 echo " StrictHostKeyChecking no" >> .ssh/config
 
-sudo tar -xf hadoop.tar.gz
-sudo rm hadoop.tar.gz
+tar -xf hadoop-2.7.2.tar.gz
+mv hadoop-2.7.2 hadoop
 
 sudo chown -R ubuntu:ubuntu /home/ubuntu/hadoop
+
+tar -xf hadoop-config.tar.gz
+cp -rf /home/ubuntu/hadoop-config/* /home/ubuntu/hadoop/etc/hadoop/
 
 printf "
 export JAVA_HOME=/usr/lib/jvm/jdk

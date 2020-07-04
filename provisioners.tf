@@ -13,15 +13,15 @@ resource "null_resource" "prepare_hosts_and_workers_files" {
   }
 
   provisioner "local-exec" {
-    command = "echo '${join("\n", formatlist("%v", aws_instance.slave-nodes.*.tags.DomainName))}' > hadoop/etc/hadoop/workers"
+    command = "echo '${join("\n", formatlist("%v", aws_instance.slave-nodes.*.tags.DomainName))}' > hadoop-config/workers"
   }
 
   provisioner "local-exec" {
-    command = "echo '${join("\n", formatlist("%v", aws_instance.slave-nodes.*.tags.DomainName))}' > hadoop/etc/hadoop/slaves"
+    command = "echo '${join("\n", formatlist("%v", aws_instance.slave-nodes.*.tags.DomainName))}' > hadoop-config/slaves"
   }
 
   provisioner "local-exec" {
-    command = "tar -czf hadoop.tar.gz hadoop/"
+    command = "tar -czf hadoop-config.tar.gz hadoop-config/"
   }
 
 }
@@ -59,7 +59,7 @@ resource "null_resource" "admin-node" {
       "sudo hostnamectl set-hostname manager.cluster",
       "sudo chmod 400 /home/ubuntu/.ssh/id_rsa",
       "sudo chmod 644 /home/ubuntu/.ssh/id_rsa.pub",
-      "cat /home/ubuntu/dns.txt| sudo tee -a /etc/hosts",
+      "cat /home/ubuntu/dns.txt | sudo tee -a /etc/hosts",
     ]
   }
 }
@@ -92,8 +92,8 @@ resource "null_resource" "master-node" {
   }
 
   provisioner "file" {
-    source      = "hadoop.tar.gz"
-    destination = "/home/ubuntu/hadoop.tar.gz"
+    source      = "hadoop-config.tar.gz"
+    destination = "/home/ubuntu/hadoop-config.tar.gz"
   }
 
   provisioner "file" {
@@ -107,7 +107,10 @@ resource "null_resource" "master-node" {
       "sudo hostnamectl set-hostname master.hadoop.cluster",
       "sudo chmod 400 /home/ubuntu/.ssh/id_rsa",
       "sudo chmod 644 /home/ubuntu/.ssh/id_rsa.pub",
-      "cat /home/ubuntu/dns.txt| sudo tee -a /etc/hosts",
+      "cat /home/ubuntu/dns.txt | sudo tee -a /etc/hosts",
+      "echo 'Host *' > .ssh/config",
+      "echo ' StrictHostKeyChecking no' >> .ssh/config",
+      "wget https://archive.apache.org/dist/hadoop/core/hadoop-2.7.2/hadoop-2.7.2.tar.gz -O /home/ubuntu/hadoop-2.7.2.tar.gz",
       "sudo chmod +x /tmp/hadoop.sh",
       "/tmp/hadoop.sh",
     ]
@@ -116,7 +119,7 @@ resource "null_resource" "master-node" {
 
 resource "null_resource" "slave-nodes" {
   depends_on = [
-    null_resource.prepare_hosts_and_workers_files
+    null_resource.master-node,
   ]
 
   count = var.slaves-count
@@ -144,11 +147,6 @@ resource "null_resource" "slave-nodes" {
   }
 
   provisioner "file" {
-    source      = "hadoop.tar.gz"
-    destination = "/home/ubuntu/hadoop.tar.gz"
-  }
-
-  provisioner "file" {
     source      = "scripts/hadoop.sh"
     destination = "/tmp/hadoop.sh"
   }
@@ -159,7 +157,11 @@ resource "null_resource" "slave-nodes" {
       "sudo hostnamectl set-hostname slave-${count.index}.hadoop.cluster",
       "sudo chmod 400 /home/ubuntu/.ssh/id_rsa",
       "sudo chmod 644 /home/ubuntu/.ssh/id_rsa.pub",
-      "cat /home/ubuntu/dns.txt| sudo tee -a /etc/hosts",
+      "cat /home/ubuntu/dns.txt | sudo tee -a /etc/hosts",
+      "echo 'Host *' > .ssh/config",
+      "echo ' StrictHostKeyChecking no' >> .ssh/config",
+      "scp master.hadoop.cluster:/home/ubuntu/hadoop-2.7.2.tar.gz /home/ubuntu/hadoop-2.7.2.tar.gz",
+      "scp master.hadoop.cluster:/home/ubuntu/hadoop-config.tar.gz /home/ubuntu/hadoop-config.tar.gz",
       "sudo chmod +x /tmp/hadoop.sh",
       "/tmp/hadoop.sh",
     ]
@@ -228,7 +230,9 @@ resource "null_resource" "cassandra-nodes" {
       "sudo hostnamectl set-hostname node-${count.index}.cassandra.cluster",
       "sudo chmod 400 /home/ubuntu/.ssh/id_rsa",
       "sudo chmod 644 /home/ubuntu/.ssh/id_rsa.pub",
-      "cat /home/ubuntu/dns.txt| sudo tee -a /etc/hosts",
+      "cat /home/ubuntu/dns.txt | sudo tee -a /etc/hosts",
+      "echo 'Host *' > .ssh/config",
+      "echo ' StrictHostKeyChecking no' >> .ssh/config",
     ]
   }
 }
