@@ -2,4 +2,4 @@
 keys/
 .terraform/
 dns.txt
-hadoop.tar.gz
+hadoop-config.tar.gz
