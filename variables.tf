@@ -1,3 +1,6 @@
+variable "aws_profile" {
+  default = "default"
+}
 variable "region" {}
 variable "slaves-count" {}
 variable "cassandra-nodes-count" {}

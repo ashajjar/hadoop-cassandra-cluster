@@ -1,4 +1,4 @@
 provider "aws" {
-  profile = "cccp_user"
+  profile = var.aws_profile
   region  = var.region
 }

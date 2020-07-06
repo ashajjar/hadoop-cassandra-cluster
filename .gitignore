@@ -6,3 +6,4 @@ hadoop-config.tar.gz
 cassandra-config.tar.gz
 *.out
 *.log
+terraform.tfvars

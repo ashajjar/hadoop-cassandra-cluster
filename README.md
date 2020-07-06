@@ -23,16 +23,20 @@ Basic configuration of cassandra is done in this file:
 
 ## Before You Run
 
-1. Create a directory call `keys/`
-2. Create a key pair called `cluster_key` (`cluster_key`,`cluster_key.pub`)
-
-An alternative would be to create a symilink to the keys you have like so:
-```shell script
-ln -s ~/.ssh/id_rsa.pub keys/cluster_key.pub
-ln -s ~/.ssh/id_rsa keys/cluster_key
-```
-
-These keys will be your keys to access AWS EC2 instances.
+0. You must have an aws account
+0. Configure your account to have a user with programatic access to the services that this project will use (EC2, VPC, ...etc)
+0. Configure this account with AWS CLI using `aws configure` 
+0. Copy `terraform.tfvars.example` to `terraform.tfvars` and configure it the way you like:
+    ```shell script
+    cp terraform.tfvars.example terraform.tfvars
+    ```
+0. Create a directory called `keys/`
+0. Create a key pair called `cluster_key` (`cluster_key`,`cluster_key.pub`). An alternative would be to create a symilink to the keys you have like so:
+    ```shell script
+    ln -s ~/.ssh/id_rsa.pub keys/cluster_key.pub
+    ln -s ~/.ssh/id_rsa keys/cluster_key
+    ```
+   These keys will be your keys to access AWS EC2 instances.
 
 ## How to Run
 
