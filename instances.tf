@@ -1,7 +1,7 @@
 resource "aws_instance" "admin-node" {
   key_name               = aws_key_pair.cluster_key.key_name
   ami                    = var.source_ami
-  instance_type          = var.instance_type
+  instance_type          = var.manager_instance_type
   vpc_security_group_ids = [aws_security_group.default_egress.id, aws_security_group.admin_access_public.id, aws_security_group.admin_access_private.id]
   subnet_id              = aws_subnet.public_subnet.id
 
@@ -14,7 +14,7 @@ resource "aws_instance" "master-node" {
   count         = var.load-hadoop ? 1 : 0
   key_name      = aws_key_pair.cluster_key.key_name
   ami           = var.source_ami
-  instance_type = var.instance_type
+  instance_type = var.hadoop_master_instance_type
 
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.default_egress.id, aws_security_group.admin_access_private.id]
@@ -28,7 +28,7 @@ resource "aws_instance" "master-node" {
 resource "aws_instance" "slave-nodes" {
   key_name      = aws_key_pair.cluster_key.key_name
   ami           = var.source_ami
-  instance_type = var.instance_type
+  instance_type = var.hadoop_slave_instance_type
   count         = (var.load-hadoop ? 1 : 0) * var.slaves-count
 
   associate_public_ip_address = false
@@ -44,7 +44,7 @@ resource "aws_instance" "slave-nodes" {
 resource "aws_instance" "cassandra-nodes" {
   key_name      = aws_key_pair.cluster_key.key_name
   ami           = var.source_ami
-  instance_type = var.instance_type
+  instance_type = var.cassandra_node_instance_type
   count         = var.cassandra-nodes-count
 
   associate_public_ip_address = false
