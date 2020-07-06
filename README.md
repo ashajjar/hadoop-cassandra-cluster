@@ -1,5 +1,8 @@
 # Hadoop and Cassandra Cluster Infrastructure as Code (HCIaC)
 
+DISCLAIMER:
+RUNNING THE CODE IN THIS REPO MAY COST REAL MONEY
+
 ## Configuring Hadoop
 Anything you add in `hadoop-config/` directory will be copied as it is to Hadoop's configuration directory : `/home/ubuntu/hadoop/etc/hadoop/` 
 
@@ -57,3 +60,10 @@ To access the cluster's web UI (Like HDFS and Yarn) you can use SSH with local f
 ssh -L 50070:master.hadoop.cluster:50070 -i keys/cluster_key ubuntu@$(terraform output manager-ip)
 ``` 
 Then you can access these services on localhost like [HDFS](http://localhost:50070/) and [Yarn](http://localhost:8088/)
+
+## How to Stop the Cluster
+
+Run this command with caution and at your own risk this will destroy the cluster without your confirmation:
+```shell script
+terraform destroy -auto-approve
+```
