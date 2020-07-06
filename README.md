@@ -28,8 +28,8 @@ Basic configuration of cassandra is done in this file:
 
 An alternative would be to create a symilink to the keys you have like so:
 ```shell script
-ln -s ~/.ssh/id_rsa.pub cluster_key.pub
-ln -s ~/.ssh/id_rsa cluster_key
+ln -s ~/.ssh/id_rsa.pub keys/cluster_key.pub
+ln -s ~/.ssh/id_rsa keys/cluster_key
 ```
 
 These keys will be your keys to access AWS EC2 instances.
