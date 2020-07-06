@@ -1,4 +1,4 @@
-# Hadoop and Cassandra Cluster Infrastructure as Code (HCIaC)
+# HCCIaC - Hadoop and Cassandra Cluster Infrastructure as Code (IaC)
 
 DISCLAIMER:
 RUNNING THE CODE IN THIS REPO MAY COST REAL MONEY
