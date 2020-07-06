@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+if [ ! -f /home/ubuntu/hadoop-2.7.7.tar.gz ]; then
+    echo "/home/ubuntu/hadoop-2.7.7.tar.gz failed to download!"
+    exit 100
+fi
+
 sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install openjdk-8-jdk -y
 cd /usr/lib/jvm || exit 1
@@ -11,8 +17,8 @@ cd ~ || exit 1
 echo "Host *" > .ssh/config
 echo " StrictHostKeyChecking no" >> .ssh/config
 
-tar -xf hadoop-2.7.2.tar.gz
-mv hadoop-2.7.2 hadoop
+tar -xf hadoop-2.7.7.tar.gz
+mv hadoop-2.7.7 hadoop
 
 sudo chown -R ubuntu:ubuntu /home/ubuntu/hadoop
 

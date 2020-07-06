@@ -11,6 +11,7 @@ resource "aws_instance" "admin-node" {
 }
 
 resource "aws_instance" "master-node" {
+  count         = var.load-hadoop ? 1 : 0
   key_name      = aws_key_pair.cluster_key.key_name
   ami           = var.source_ami
   instance_type = var.instance_type
@@ -28,7 +29,7 @@ resource "aws_instance" "slave-nodes" {
   key_name      = aws_key_pair.cluster_key.key_name
   ami           = var.source_ami
   instance_type = var.instance_type
-  count         = var.slaves-count
+  count         = (var.load-hadoop ? 1 : 0) * var.slaves-count
 
   associate_public_ip_address = false
   vpc_security_group_ids      = [aws_security_group.default_egress.id, aws_security_group.admin_access_private.id]

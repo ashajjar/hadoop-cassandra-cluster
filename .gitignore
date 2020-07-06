@@ -3,3 +3,6 @@ keys/
 .terraform/
 dns.txt
 hadoop-config.tar.gz
+cassandra-config.tar.gz
+*.out
+*.log

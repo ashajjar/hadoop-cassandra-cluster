@@ -1,7 +1,8 @@
-resource "null_resource" "prepare_hosts_and_workers_files" {
+resource "null_resource" "prepare_hadoop_dns_and_config" {
+  count = (var.load-hadoop ? 1 : 0)
 
   provisioner "local-exec" {
-    command = "echo '${aws_instance.master-node.private_ip}    master.hadoop.cluster' > \"${path.module}/dns.txt\""
+    command = "echo '${aws_instance.master-node.0.private_ip}    master.hadoop.cluster' > \"${path.module}/dns.txt\""
   }
 
   provisioner "local-exec" {
@@ -23,12 +24,25 @@ resource "null_resource" "prepare_hosts_and_workers_files" {
   provisioner "local-exec" {
     command = "tar -czf hadoop-config.tar.gz hadoop-config/"
   }
+}
 
+resource "null_resource" "prepare_cassandra_dns_and_config" {
+  depends_on = [
+    null_resource.prepare_hadoop_dns_and_config,
+  ]
+  provisioner "local-exec" {
+    command = "echo '${join("\n", formatlist("%v    %v", aws_instance.cassandra-nodes.*.private_ip, aws_instance.cassandra-nodes.*.tags.DomainName))}' >> \"${path.module}/dns.txt\""
+  }
+
+  provisioner "local-exec" {
+    command = "tar -czf cassandra-config.tar.gz cassandra-config/"
+  }
 }
 
 resource "null_resource" "admin-node" {
   depends_on = [
-    null_resource.prepare_hosts_and_workers_files
+    null_resource.prepare_hadoop_dns_and_config,
+    null_resource.prepare_cassandra_dns_and_config
   ]
 
   connection {
@@ -65,13 +79,14 @@ resource "null_resource" "admin-node" {
 }
 
 resource "null_resource" "master-node" {
+  count = (var.load-hadoop ? 1 : 0)
   depends_on = [
-    null_resource.prepare_hosts_and_workers_files
+    null_resource.prepare_hadoop_dns_and_config
   ]
 
   connection {
     bastion_host = aws_instance.admin-node.public_ip
-    host         = aws_instance.master-node.private_ip
+    host         = aws_instance.master-node.0.private_ip
     user         = "ubuntu"
     private_key  = file("keys/cluster_key")
   }
@@ -110,7 +125,7 @@ resource "null_resource" "master-node" {
       "cat /home/ubuntu/dns.txt | sudo tee -a /etc/hosts",
       "echo 'Host *' > .ssh/config",
       "echo ' StrictHostKeyChecking no' >> .ssh/config",
-      "wget https://archive.apache.org/dist/hadoop/core/hadoop-2.7.2/hadoop-2.7.2.tar.gz -O /home/ubuntu/hadoop-2.7.2.tar.gz",
+      "wget --trust-server-names $(curl 'https://www.apache.org/dyn/closer.cgi' | grep -o '<strong>[^<]*</strong>' | sed 's/<[^>]*>//g' | head -1)\"hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz\" -O /home/ubuntu/hadoop-2.7.7.tar.gz",
       "sudo chmod +x /tmp/hadoop.sh",
       "/tmp/hadoop.sh",
     ]
@@ -122,7 +137,7 @@ resource "null_resource" "slave-nodes" {
     null_resource.master-node,
   ]
 
-  count = var.slaves-count
+  count = (var.load-hadoop ? 1 : 0) * var.slaves-count
 
   connection {
     bastion_host = aws_instance.admin-node.public_ip
@@ -160,7 +175,7 @@ resource "null_resource" "slave-nodes" {
       "cat /home/ubuntu/dns.txt | sudo tee -a /etc/hosts",
       "echo 'Host *' > .ssh/config",
       "echo ' StrictHostKeyChecking no' >> .ssh/config",
-      "scp master.hadoop.cluster:/home/ubuntu/hadoop-2.7.2.tar.gz /home/ubuntu/hadoop-2.7.2.tar.gz",
+      "scp master.hadoop.cluster:/home/ubuntu/hadoop-2.7.7.tar.gz /home/ubuntu/hadoop-2.7.7.tar.gz",
       "scp master.hadoop.cluster:/home/ubuntu/hadoop-config.tar.gz /home/ubuntu/hadoop-config.tar.gz",
       "sudo chmod +x /tmp/hadoop.sh",
       "/tmp/hadoop.sh",
@@ -169,6 +184,7 @@ resource "null_resource" "slave-nodes" {
 }
 
 resource "null_resource" "start-hadoop" {
+  count = (var.load-hadoop ? 1 : 0)
   depends_on = [
     null_resource.master-node,
     null_resource.slave-nodes
@@ -176,7 +192,7 @@ resource "null_resource" "start-hadoop" {
 
   connection {
     bastion_host = aws_instance.admin-node.public_ip
-    host         = aws_instance.master-node.private_ip
+    host         = aws_instance.master-node.0.private_ip
     user         = "ubuntu"
     private_key  = file("keys/cluster_key")
   }
@@ -197,7 +213,7 @@ resource "null_resource" "start-hadoop" {
 
 resource "null_resource" "cassandra-nodes" {
   depends_on = [
-    null_resource.prepare_hosts_and_workers_files
+    null_resource.prepare_cassandra_dns_and_config
   ]
 
   count = var.cassandra-nodes-count
@@ -224,6 +240,16 @@ resource "null_resource" "cassandra-nodes" {
     destination = "/home/ubuntu/dns.txt"
   }
 
+  provisioner "file" {
+    source      = "cassandra-config.tar.gz"
+    destination = "/home/ubuntu/cassandra-config.tar.gz"
+  }
+
+  provisioner "file" {
+    source      = "scripts/cassandra.sh"
+    destination = "/tmp/cassandra.sh"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "echo 'CONNECTED TO CASSANDRA NODE ${count.index}'",
@@ -233,6 +259,34 @@ resource "null_resource" "cassandra-nodes" {
       "cat /home/ubuntu/dns.txt | sudo tee -a /etc/hosts",
       "echo 'Host *' > .ssh/config",
       "echo ' StrictHostKeyChecking no' >> .ssh/config",
+      "echo '${join(",", formatlist("%v", aws_instance.cassandra-nodes.*.private_ip))}' > /home/ubuntu/nodes.ips",
+      "echo '${element(aws_instance.cassandra-nodes.*.private_ip, count.index)}' > /home/ubuntu/node.ip",
+      "sudo chmod +x /tmp/cassandra.sh",
+      "/tmp/cassandra.sh",
+    ]
+  }
+}
+
+
+resource "null_resource" "check-cassandra" {
+  depends_on = [
+    null_resource.cassandra-nodes
+  ]
+
+  connection {
+    bastion_host = aws_instance.admin-node.public_ip
+    host         = element(aws_instance.cassandra-nodes.*.private_ip, 0)
+    user         = "ubuntu"
+    private_key  = file("keys/cluster_key")
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'CHECKING CASSANDRA ...'",
+      "sleep 30",
+      "nodetool enablethrift",
+      "nodetool status",
+      "nodetool describecluster"
     ]
   }
 }

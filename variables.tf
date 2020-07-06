@@ -5,3 +5,4 @@ variable "source_ami" {}
 variable "instance_type" {}
 variable "vpc_cidr" {}
 variable "vpc_cidrs" {}
+variable "load-hadoop" {}
